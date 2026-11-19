@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobillor AI Voice Assistant Playground</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #10b981;
+            --record-red: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #60a5fa;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            background: #1e3a8a;
+            color: #93c5fd;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background-color: var(--primary);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 2px;
+            width: 85%;
+        }
+
+        .spoken-banner {
+            background: rgba(37, 99, 235, 0.15);
+            border-left: 3px solid #60a5fa;
+            padding: 0.6rem 0.9rem;
+            margin-bottom: 0.85rem;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            color: #bfdbfe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .replay-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            transition: all 0.2s;
+        }
+
+        .replay-btn:hover {
+            background: #1d4ed8;
+            transform: scale(1.03);
+        }
+
+        /* Markdown Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.88rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1e293b;
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Bottom Control Panel */
+        #controls {
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border);
+            padding: 1.25rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .mic-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        #mic-button {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            transition: all 0.25s ease;
+            outline: none;
+        }
+
+        #mic-button:hover {
+            transform: scale(1.06);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+        }
+
+        #mic-button.recording {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            animation: pulse-ring 1.5s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        #status-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            min-height: 1.2rem;
+        }
+
+        .text-input-row {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .text-input-row input {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .text-input-row button {
+            background: #334155;
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .text-input-row button:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <span>🎙️</span> Mobillor Voice Assistant
+            <span class="badge">In-Memory Gateway (:8000)</span>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-muted);">
+            STT + SQL Agent + Neural2 TTS
+        </div>
+    </header>
+
+    <div id="chat-container">
+        <div class="message assistant">
+            <div class="spoken-banner">
+                <span>👋 <strong>Welcome to Mobillor WMS Voice Assistant!</strong></span>
+            </div>
+            <p>Click the 🎤 Microphone button below and speak your query, or type below.</p>
+            <p style="margin-top: 0.4rem; color: #94a3b8; font-size: 0.85rem;">
+                Try asking: <em>"Show process order allocations with target quantities"</em> or <em>"What is the total available stock for titanium dioxide?"</em>
+            </p>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="mic-wrapper">
+            <button id="mic-button" title="Click to start/stop speaking">🎤</button>
+            <div id="status-label">Click mic to speak</div>
+        </div>
+
+        <form class="text-input-row" id="text-form">
+            <input type="text" id="manual-text" placeholder="Or type a warehouse question here..." />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const micBtn = document.getElementById('mic-button');
+        const statusLabel = document.getElementById('status-label');
+        const chatContainer = document.getElementById('chat-container');
+        const textForm = document.getElementById('text-form');
+        const manualInput = document.getElementById('manual-text');
+
+        let activeUserId = "user";
+        let activeSessionId = localStorage.getItem("moby_session_id") || "";
+
+        async function initSession() {
+            if (!activeSessionId) {
+                try {
+                    const res = await fetch(`/dev/proxy/create_session?userId=${activeUserId}&appName=chat_boat_sql`, { method: "POST" });
+                    const data = await res.json();
+                    if (data && data.id) {
+                        activeSessionId = data.id;
+                        localStorage.setItem("moby_session_id", activeSessionId);
+                        console.log("Initialized ADK session:", activeSessionId);
+                    }
+                } catch(e) {
+                    console.warn("Session init note:", e);
+                }
+            }
+        }
+        initSession();
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordInterval = null;
+        let recordSeconds = 0;
+
+        // Auto-play audio helper (with Browser Native Speech fallback)
+        function playAudio(b64, textFallback) {
+            if (b64) {
+                const audio = new Audio("data:audio/mp3;base64," + b64);
+                audio.play().catch(e => console.log("Auto-play permission note:", e));
+            } else if (textFallback && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(textFallback);
+                utter.lang = 'en-IN';
+                window.speechSynthesis.speak(utter);
+            }
+        }
+
+        // Append message to chat container
+        function appendUserMessage(text) {
+            const div = document.createElement('div');
+            div.className = 'message user';
+            div.innerText = text;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendAssistantResponse(data) {
+            const div = document.createElement('div');
+            div.className = 'message assistant';
+
+            let spokenBannerHtml = '';
+            if (data.spoken_summary) {
+                const b64Arg = data.audio_base64 ? JSON.stringify(data.audio_base64) : 'null';
+                const textArg = JSON.stringify(data.spoken_summary);
+                spokenBannerHtml = `
+                    <div class="spoken-banner">
+                        <span>🔊 <em>${data.spoken_summary}</em></span>
+                        <button class="replay-btn" onclick='playAudio(${b64Arg}, ${textArg})'>🔊 Replay</button>
+                    </div>
+                `;
+            }
+
+            const markdownHtml = marked.parse(data.text_response || "No response received.");
+            div.innerHTML = spokenBannerHtml + markdownHtml;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            // Auto-play audio (GCP Neural2 or Browser Speech fallback)
+            playAudio(data.audio_base64, data.spoken_summary);
+        }
+
+        // Mic Button Click Handler
+        micBtn.addEventListener('click', async () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = sendVoiceChat;
+
+                mediaRecorder.start();
+                isRecording = true;
+                micBtn.classList.add('recording');
+                micBtn.innerText = '⏹️';
+                recordSeconds = 0;
+                statusLabel.innerText = "Listening... (Click to Stop)";
+
+                recordInterval = setInterval(() => {
+                    recordSeconds++;
+                    statusLabel.innerText = `Listening... 00:0${recordSeconds} (Click to Stop)`;
+                }, 1000);
+
+            } catch (err) {
+                console.error("Microphone access error:", err);
+                statusLabel.innerText = "⚠️ Microphone access denied: " + err.message;
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+            clearInterval(recordInterval);
+            isRecording = false;
+            micBtn.classList.remove('recording');
+            micBtn.innerText = '🎤';
+            statusLabel.innerText = "Processing audio with AI...";
+        }
+
+        async function sendVoiceChat() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append("file", audioBlob, "voice_record.webm");
+            formData.append("userId", activeUserId);
+            formData.append("sessionId", activeSessionId || "default_session");
+            formData.append("appName", "chat_boat_sql");
+
+            try {
+                const res = await fetch("/dev/proxy/voice/chat", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    appendUserMessage(data.query || "🎤 Voice query");
+                    appendAssistantResponse(data);
+                    statusLabel.innerText = "Response ready!";
+                } else {
+                    const errMsg = data.error || (data.details ? JSON.stringify(data.details) : "Execution failed");
+                    statusLabel.innerText = "⚠️ " + errMsg;
+                    if (data.query) appendUserMessage(data.query);
+                    const errDiv = document.createElement('div');
+                    errDiv.className = 'message assistant';
+                    errDiv.innerHTML = `<span style="color:#ef4444; font-weight:600;">⚠️ ${errMsg}</span>`;
+                    chatContainer.appendChild(errDiv);
+                }
+            } catch (e) {
+                statusLabel.innerText = "⚠️ Network request failed: " + e.message;
+            }
+        }
+
+        // Text Form submit fallback
+        textForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = manualInput.value.trim();
+            if (!text) return;
+
+            appendUserMessage(text);
+            manualInput.value = '';
+            statusLabel.innerText = "Querying agent...";
+
+            try {
+                // Call /dev/proxy/run
+                const runRes = await fetch("/dev/proxy/run", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        appName: "chat_boat_sql",
+                        userId: activeUserId,
+                        sessionId: activeSessionId || "default_session",
+                        newMessage: { parts: [{ text: text }], role: "user" }
+                    })
+                });
+                const runData = await runRes.json();
+
+                // Call /dev/proxy/voice/tts to get spoken summary & audio
+                let rawText = "";
+                if (Array.isArray(runData)) {
+                    for (const ev of runData) {
+                        const parts = ev?.content?.parts || ev?.actions?.content?.parts || [];
+                        for (const p of parts) { if (p?.text) rawText += p.text + "\n"; }
+                    }
+                } else if (runData?.raw) {
+                    rawText = runData.raw;
+                }
+
+                const ttsRes = await fetch("/dev/proxy/voice/tts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text: rawText || "Here are your warehouse results." })
+                });
+                const ttsData = await ttsRes.json();
+
+                appendAssistantResponse({
+                    text_response: rawText,
+                    spoken_summary: ttsData.spoken_text,
+                    audio_base64: ttsData.audio_base64
+                });
+                statusLabel.innerText = "Ready!";
+            } catch (err) {
+                statusLabel.innerText = "⚠️ Error: " + err.message;
+            }
+        });
+    </script>
+</body>
+</html>
+
